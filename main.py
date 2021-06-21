@@ -3,10 +3,10 @@ from logger import logger
 import pandas
 import matplotlib.pyplot as plt
 import matplotlib.dates as dts
+from users import users
 
 BASE_PATH = Path(__file__).resolve().parent
 lt22_path = BASE_PATH / 'lt24.xlsx'
-
 logger.debug(lt22_path)
 
 # setting up style for plot
@@ -27,7 +27,6 @@ lt22_night_df = lt22_df[
 
 pallet_by_time = lt22_night_df.groupby(['User.1', 'Time'])['Quantity'].count()
 pallet_by_time_df = pallet_by_time.to_frame().reset_index()
-
 pallet_by_time_df.loc[:, 'Time'] = pallet_by_time_df['Time'].dt.floor('30min')
 
 pallet_by_round_time = pallet_by_time_df.groupby(['User.1', 'Time'])['Quantity'].count()
@@ -35,8 +34,9 @@ pallet_by_round_time_df = pallet_by_round_time.to_frame().reset_index()
 
 lt22_pivot = pallet_by_round_time_df.pivot_table(index=['Time'], columns=['User.1'], values='Quantity')
 lt22_pivot_df = lt22_pivot.reset_index()
-
 lt22_pivot_df.fillna(value=0, inplace=True)
+# renaming users to their lastnames
+lt22_pivot_df.rename({code: name for code, name in users.items()}, axis='columns', inplace=True)
 
 # increasing each user's quantity by quantity before
 for i in range(1, len(lt22_pivot_df.index)):
@@ -44,9 +44,8 @@ for i in range(1, len(lt22_pivot_df.index)):
         if name == 'Time':
             pass
         else:
-            lt22_pivot_df.loc[i, name] += lt22_pivot_df.loc[i-1, name]
+            lt22_pivot_df.loc[i, name] += lt22_pivot_df.loc[i - 1, name]
 logger.debug(lt22_pivot_df)
-
 
 # making plot showing amount of pallets by time for each user
 lt22_plot = lt22_pivot_df.plot(
@@ -62,9 +61,3 @@ lt22_plot.xaxis.set_major_formatter(date_formatter)
 lt22_plot.yaxis.tick_right()
 
 plt.show()
-
-# pivot.assign(Date=pivot['Confirmation time'].dt.round('H'))
-
-# pivot = date_filter.pivot_table(index=['Confirmation time', 'User1'], values='Dest.target quantity', aggfunc='count')
-
-# print(pivot['Dest.target quantity'])
