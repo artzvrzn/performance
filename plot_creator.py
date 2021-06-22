@@ -14,24 +14,17 @@ class LT22Reader:
         self.lt22_df.loc[:, 'Time'] = (self.lt22_df.loc[:, 'Confirmation date'].astype('str') +
                                       ' ' +
                                       self.lt22_df.loc[:, 'Confirmation time'].astype('str'))
-        self.lt22_df.loc[:, 'Time'] = pandas.to_datetime(self.lt22_df.loc[:, 'Time'])
+        self.lt22_df.loc[:, 'Time'] = pandas.to_datetime(self.lt22_df.loc[:, 'Time']).dt.floor('30min')
         self.lt22_df.rename({'Source storage unit': 'Quantity'}, axis='columns', inplace=True)
         self.pivot_df = self._to_pivot()
 
     def _to_pivot(self):
         lt22_night_df = self.lt22_df[
-            (self.lt22_df['Time'] > pandas.to_datetime(f'{DATE_BEFORE} 19:00:00')) &
-            (self.lt22_df['Time'] < pandas.to_datetime(f'{DATE_TODAY} 06:59:00'))
+            (self.lt22_df['Time'] > pandas.to_datetime(f'{DATE_BEFORE} 18:50:00')) &
+            (self.lt22_df['Time'] < pandas.to_datetime(f'{DATE_TODAY} 07:00:00'))
             ]
-        lt22_night_df.loc[:, 'Time'] = lt22_night_df.loc[:, 'Time'].dt.floor('30min')
-        print(lt22_night_df)
-        pallet_by_time = lt22_night_df.groupby(['User.1', 'Time'])['Quantity'].count()  # < Здесь
+        pallet_by_time = lt22_night_df.groupby(['User.1', 'Time'])['Quantity'].count()
         pallet_by_time_df = pallet_by_time.to_frame().reset_index()
-        print(pallet_by_time_df['User.1'].count())
-        # pallet_by_time_df.loc[:, 'Time'] = pallet_by_time_df['Time'].dt.floor('30min')
-
-        # pallet_by_round_time = pallet_by_time_df.groupby(['User.1', 'Time'])['Quantity'].count()
-        # pallet_by_round_time_df = pallet_by_round_time.to_frame().reset_index()
 
         lt22_pivot = pallet_by_time_df.pivot_table(index=['Time'], columns=['User.1'], values='Quantity')
         pivot_df = lt22_pivot.reset_index()
