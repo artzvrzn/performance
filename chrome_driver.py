@@ -55,11 +55,11 @@ class LT22Run:
     def _start_application(self):
         try:
             chrome_path = Path(__file__).parent.resolve() / 'chromedriver_92.exe'
-            self.driver = webdriver.Chrome(chrome_path)
+            self.driver = webdriver.Chrome(chrome_path, chrome_options=options)
             logger.info(f'Chrome version {self.driver.capabilities["browserVersion"]}')
         except SessionNotCreatedException:
             chrome_path = Path(__file__).parent.resolve() / 'chromedriver_91.exe'
-            self.driver = webdriver.Chrome(chrome_path)
+            self.driver = webdriver.Chrome(chrome_path, chrome_options=options)
             logger.info(f'Chrome version {self.driver.capabilities["browserVersion"]}')
         self.driver.implicitly_wait(10)
         self.driver.get(LT22_URL)
@@ -83,11 +83,10 @@ class LT22Run:
                 element.clear()
                 element.send_keys(value)
 
-        body = WebDriverWait(driver=self.driver, timeout=300).until(lambda d: d.find_element_by_id('M0:46:::26:1_l'))
+        body = WebDriverWait(driver=self.driver, timeout=300).until(lambda d: d.find_element_by_id('M0:46:::3:2_l'))
         body.send_keys(Keys.SHIFT + Keys.F4)
         self.driver.find_element_by_id(CONTINUE_BTN).click()
 
     def execute(self):
         self._run_application()
         self._get_file_path()
-

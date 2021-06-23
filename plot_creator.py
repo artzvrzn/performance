@@ -1,8 +1,9 @@
-from pathlib import Path
-from logger import logger
 import pandas
 import matplotlib.pyplot as plt
 import matplotlib.dates as dts
+import matplotlib.ticker as ticker
+
+from logger import logger
 from users import users
 from chrome_driver import LT22Run, DATE_BEFORE, DATE_TODAY
 
@@ -14,7 +15,7 @@ class LT22Reader:
         self.lt22_df.loc[:, 'Time'] = (self.lt22_df.loc[:, 'Confirmation date'].astype('str') +
                                       ' ' +
                                       self.lt22_df.loc[:, 'Confirmation time'].astype('str'))
-        self.lt22_df.loc[:, 'Time'] = pandas.to_datetime(self.lt22_df.loc[:, 'Time']).dt.floor('30min')
+        self.lt22_df.loc[:, 'Time'] = pandas.to_datetime(self.lt22_df.loc[:, 'Time']).dt.floor('15min')
         self.lt22_df.rename({'Source storage unit': 'Quantity'}, axis='columns', inplace=True)
         self.pivot_df = self._to_pivot()
 
@@ -40,7 +41,6 @@ class LT22Reader:
                 else:
                     pivot_df.loc[i, name] += pivot_df.loc[i - 1, name]
         logger.debug(pivot_df)
-        print(pivot_df)
         return pivot_df
 
     def get_plot(self):
@@ -62,6 +62,7 @@ class LT22Reader:
         lt22_plot.xaxis.set_major_locator(date_locator)
         lt22_plot.xaxis.set_major_formatter(date_formatter)
         lt22_plot.yaxis.tick_right()
+        lt22_plot.yaxis.set_major_locator(ticker.MultipleLocator(base=25.0))
 
         plt.show()
 
