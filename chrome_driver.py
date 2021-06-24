@@ -1,6 +1,5 @@
 from pathlib import Path
 from selenium import webdriver
-from selenium.common.exceptions import SessionNotCreatedException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from datetime import date, timedelta
@@ -9,6 +8,9 @@ import os
 from time import sleep
 from getpass import getuser
 from logger import logger
+
+BASE_PATH = Path(__file__).parent.resolve()
+chrome_path = BASE_PATH / 'chromedriver.exe'
 
 LT22_URL = 'https://cuvl0301.eur.cchbc.com:8204/sap/bc/ui2/flp#LT22-display'
 
@@ -41,6 +43,7 @@ def get_last_file_path():
 class LT22Run:
 
     def __init__(self):
+        self._remove_old_file()
         self.driver = None
         self.fill_parameters = {WAREHOUSE_NUMBER: '270',
                                 STORAGE_TYPE: '200',
@@ -53,14 +56,8 @@ class LT22Run:
         self.file_name = get_last_file_path()
 
     def _start_application(self):
-        try:
-            chrome_path = Path(__file__).parent.resolve() / 'chromedriver_92.exe'
-            self.driver = webdriver.Chrome(chrome_path, chrome_options=options)
-            logger.info(f'Chrome version {self.driver.capabilities["browserVersion"]}')
-        except SessionNotCreatedException:
-            chrome_path = Path(__file__).parent.resolve() / 'chromedriver_91.exe'
-            self.driver = webdriver.Chrome(chrome_path, chrome_options=options)
-            logger.info(f'Chrome version {self.driver.capabilities["browserVersion"]}')
+        self.driver = webdriver.Chrome(chrome_path, chrome_options=options)
+        logger.info(f'Chrome version {self.driver.capabilities["browserVersion"]}')
         self.driver.implicitly_wait(10)
         self.driver.get(LT22_URL)
         self.driver.switch_to.frame('application-LT22-display')
@@ -71,6 +68,8 @@ class LT22Run:
         self.file_name = get_last_file_path()
         logger.info(f'lt22.xlsx: {self.file_name}')
         self.driver.quit()
+        with open(file='lt22_old.txt', mode='w', encoding='utf8') as legacy:
+            legacy.write(os.path.normpath(self.file_name))
         return self.file_name
 
     def _run_application(self):
@@ -86,6 +85,14 @@ class LT22Run:
         body = WebDriverWait(driver=self.driver, timeout=300).until(lambda d: d.find_element_by_id('M0:46:::3:2_l'))
         body.send_keys(Keys.SHIFT + Keys.F4)
         self.driver.find_element_by_id(CONTINUE_BTN).click()
+
+    def _remove_old_file(self):
+        try:
+            with open(file=Path(__file__).parent.resolve() / 'lt22_old.txt', mode='r', encoding='utf8') as legacy:
+                for line in legacy.readlines():
+                    Path.unlink(Path(line))
+        except Exception as exc:
+            print(exc)
 
     def execute(self):
         self._run_application()
