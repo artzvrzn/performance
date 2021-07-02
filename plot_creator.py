@@ -2,19 +2,25 @@ import pandas
 import matplotlib.pyplot as plt
 import matplotlib.dates as dts
 import matplotlib.ticker as ticker
+from datetime import date, timedelta
 
 from logger import logger
 from users import users
-from chrome_driver import LT22Run, DATE_BEFORE, DATE_TODAY
+from chrome_driver import LT22Run
+
+DATE_BEFORE = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
+DATE_TODAY = date.today().strftime('%Y-%m-%d')
 
 
 class LT22Reader:
 
     def __init__(self, path_to_lt22):
-        self.lt22_df = pandas.read_excel(path_to_lt22)[:-1]
+        self.lt22_df = pandas.read_excel(path_to_lt22)[:-2]
+        self.lt22_df.dropna(subset=['Source storage unit'], inplace=True)
+        print(self.lt22_df['Source storage unit'])
         self.lt22_df.loc[:, 'Time'] = (self.lt22_df.loc[:, 'Confirmation date'].astype('str') +
-                                      ' ' +
-                                      self.lt22_df.loc[:, 'Confirmation time'].astype('str'))
+                                       ' ' +
+                                       self.lt22_df.loc[:, 'Confirmation time'].astype('str'))
         self.lt22_df.loc[:, 'Time'] = pandas.to_datetime(self.lt22_df.loc[:, 'Time']).dt.floor('15min')
         self.lt22_df.rename({'Source storage unit': 'Quantity'}, axis='columns', inplace=True)
         self.pivot_df = self._to_pivot()
@@ -30,9 +36,9 @@ class LT22Reader:
         lt22_pivot = pallet_by_time_df.pivot_table(index=['Time'], columns=['User.1'], values='Quantity')
         pivot_df = lt22_pivot.reset_index()
         pivot_df.fillna(value=0, inplace=True)
+
         # renaming users to their lastnames
         pivot_df.rename({code: name for code, name in users.items()}, axis='columns', inplace=True)
-
         # increasing each user's quantity by quantity before
         for i in range(1, len(pivot_df.index)):
             for name in pivot_df.columns:
